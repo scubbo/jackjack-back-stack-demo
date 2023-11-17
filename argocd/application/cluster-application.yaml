@@ -12,3 +12,18 @@ spec:
   destination: 
     name: in-cluster
     namespace: default
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: applications
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: repository
+    path: demo/applications
+    targetRevision: HEAD
+  destination: 
+    name: in-cluster
+    namespace: default
