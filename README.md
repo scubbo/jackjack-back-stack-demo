@@ -34,20 +34,31 @@ Once everything's installed, the following steps provide a pretty good Proof Of 
 
 ## Creating a new application
 
-* In Backstage, navigate to "Create", and choose the "New Application Deployment"
-  * (Kind-of a misleading label - it's creating a new Application, not a Deployment of an Application, but w/e...)
-* Fill in the metadata:
-  * Application Name - arbitrary
-  * Application Source - full URL of your forked repository (e.g. for me it was `https://github.com/scubbo/jackjack-back-stack-demo`)
-  * Path - `backstage/examples/template/content`
+### Creating a new application from external definition
+
+* In Backstage, navigate to "[Create](https://backstage-7f000001.nip.io/create)", and choose "New Application Deployment"
+* Fill out the metadata:
+  * Application Source: `https://github.com/argoproj/argocd-example-apps`
+  * Path: `helm-guestbook`
   * Click "Next"
-* Fill in the next set of metadata:
-  * Owner - your GitHub username
-  * Repository - arbitrary. I chose `jackjack-back-stack-demo-created-application`
-  * Branch Name for Pull Requst - arbitrary. This will be the name of the Branch from which a PR is created to add this Application to the defined set of Applications.
+* Fill out the next set of metadata:
+  * "Owner" and "Repository" should be your forked version of this repository - e.g. for me it was `scubbo/jackjack-back-stack-demo`
+    * Note that the labelling is misleading - the label under "Host" reads "_The host where the repository will be created_", but a repository is only being updated (actually, not even that - a PR created), not created
   * Click "Review", then "Create"
+* Once Creation is complete, click through to the Pull Request, and Merge it
+* Manually create an [App-of-apps](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/) so that the added application will show up. In Argo UI, click "New App". Fill out:
+  * Application Name: Arbitrary (I chose `applications`)
+  * Project Name: default
+  * Repository URL: This should autofill, but - the full URL to your forked repository (e.g. `https://github.com/scubbo/jackjack-back-stack-demo`, for me)
+  * Path: `demo/applications`
+  * Cluster URL: `https://kubernetes.default.svc` (again, this should autofill)
+  * Namespace: `default`
+  * Click "Create"
+  * (The reason that this has to be created manually, rather than by Argo seems to forbid creating an empty App-of-apps)
+* The Argo Applications screen should now show an `applications` app. Click into it, and click "Sync" at the top of the page - everything should go Green
+* Click into the sub-application (named whatever you entered as the name of your Application at the beginning of this section).
 
 
-  # Thanks and acknowledgements
+# Thanks and acknowledgements
 
-  This demo was heavily inspired by, and builds on, [this repo](https://github.com/crossplane-contrib/back-stack) - though I've adapted it heavily to suit my own team's use-cases (in particular, cluster maintainance is not a big concern for us, but definition of Applications' "SDLC Infrastructure" - e.g. the Vault policies which allow GitHub Actions to execute - is). I also made some tweaks to the `install` script to make it idempotent (since I had to re-run a bunch of times to get around issues, and starting up the cluster from scratch each time was a pain!), such as using `kubectl apply` rather than `kubectl create` to create `clusterrolebinding`s and `ProviderConfig`s.
+This demo was heavily inspired by, and builds on, [this repo](https://github.com/crossplane-contrib/back-stack) - though I've adapted it heavily to suit my own team's use-cases (in particular, cluster maintainance is not a big concern for us, but definition of Applications' "SDLC Infrastructure" - e.g. the Vault policies which allow GitHub Actions to execute - is). I also made some tweaks to the `install` script to make it idempotent (since I had to re-run a bunch of times to get around issues, and starting up the cluster from scratch each time was a pain!), such as using `kubectl apply` rather than `kubectl create` to create `clusterrolebinding`s and `ProviderConfig`s.
