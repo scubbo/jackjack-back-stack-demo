@@ -45,7 +45,7 @@ if [[ $(kind get clusters | grep -c "$CLUSTER_NAME") -ne 0 ]]; then
   echo "Cluster already exists"
 else
   echo "Cluster does not exist, creating"
-  kind create cluster --name backstack --wait 5m --config=- <<- EOF
+  kind create cluster --name "$CLUSTER_NAME" --wait 5m --config=- <<- EOF
   kind: Cluster
   apiVersion: kind.x-k8s.io/v1alpha4
   nodes:
@@ -140,6 +140,18 @@ EOF
 waitfor default crd providerconfigs.kubernetes.crossplane.io
 kubectl wait crd/providerconfigs.kubernetes.crossplane.io --for=condition=Established --timeout=1m
 SA=$(kubectl -n crossplane-system get sa -o name | grep provider-kubernetes | sed -e 's|serviceaccount\/||g')
+while :
+do
+  # Weirdly, `kubectl wait crd/...` does _not_ actually seem to properly wait for the creation of the service account -
+  # the first time this script is run, `SA` is often empty. This loop waits for the value to be populated.
+  if [[ -z "$SA" ]]; then
+    echo "Waiting for crossplane-system Service Account to be created..."
+    sleep 1
+    SA=$(kubectl -n crossplane-system get sa -o name | grep provider-kubernetes | sed -e 's|serviceaccount\/||g')
+  else
+    break
+  fi
+done
 kubectl apply -f - <<- EOF
   apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRoleBinding

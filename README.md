@@ -24,11 +24,13 @@ The `install.sh` script does the following:
 * Install an instance of a Hub - a BackStack CRD which references a `REPOSITORY` (this one! Or, rather - your forked version of this one!) to know
   * This is why this repository contains directories named `argocd`, `backstage`, `crossplane`, and `kyverno` - these are the definitions for how those applications should be installed onto the cluster _via_ the Hub CRD.
 
-Once everything's installed, the following steps provide a pretty good Proof Of Concept of how the BACK stack works:
+Once everything's installed (which takes about 7-10 minutes), the following steps provide a pretty good Proof Of Concept of how the BACK stack works:
 
-## Showing that things exist
+## Show that things exist
 
 * Log in to ArgoCD with the provided URL and credentials
+  * The `clusters` application comes pre-bundled with the demo BACK stack I was working from. The original demo showed how easy it was to create AKS/EKS clusters via Crossplane, but we're not interested in that functionality right now.
+  * You probably want to go to "Settings -> Clusters" and change the name of `in-cluster` to `hostcluster` - see [this issue](https://github.com/back-stack/showcase/issues/1).
 * Navigate to Backstage, wait until the Catalog shows objects populated (should be 4 of them, one for each element of the BACK stack)
   * (This can take about 10 minutes - better to do this in-advance if you're planning a demo)
 
@@ -38,8 +40,9 @@ Once everything's installed, the following steps provide a pretty good Proof Of 
 
 * In Backstage, navigate to "[Create](https://backstage-7f000001.nip.io/create)", and choose "New Application Deployment"
 * Fill out the metadata:
-  * Application Source: `https://github.com/argoproj/argocd-example-apps`
-  * Path: `helm-guestbook`
+  * Application Source: `https://github.com/danielhelfand/examples`
+   (the guestbook examples from both `https://github.com/kubernetes/examples` and `https://github.com/argoproj/argocd-example-apps/` are broken - see [here](https://github.com/argoproj/argocd-example-apps/issues/126) for the latter), and the former relies on an unavailable image `gcr.io/google-samples/gb-frontend:v4`
+  * Path: `guestbook/all-in-one`
   * Click "Next"
 * Fill out the next set of metadata:
   * "Owner" and "Repository" should be your forked version of this repository - e.g. for me it was `scubbo/jackjack-back-stack-demo`
@@ -56,8 +59,10 @@ Once everything's installed, the following steps provide a pretty good Proof Of 
   * Click "Create"
   * (The reason that this has to be created manually, rather than by Argo seems to forbid creating an empty App-of-apps)
 * The Argo Applications screen should now show an `applications` app. Click into it, and click "Sync" at the top of the page - everything should go Green
-* Click into the sub-application (named whatever you entered as the name of your Application at the beginning of this section).
+* Click into the sub-application (named whatever you entered as the name of your Application at the beginning of this section), and Sync - again, everything should (shortly) go green.
+* You _could_ set up an Ingress to provide access to the application, but for a demo it's simpler just to port-forward: `kubectl -n default port-forward service/frontend 8080:80` - then in your browser, navigate to `localhost:8080`
 
+(Next step TODO - demonstrate how to use Crossplane to manage outside-k8s resources)
 
 # Thanks and acknowledgements
 

@@ -8,6 +8,7 @@ TODO:
 
 * Does Backstage support authorization for carrying out actions? (e.g. only owners can update an application's config)
 * Can the default Branch Name For Pull Request be set based on the Application Name? Otherwise there'll be clashes.
+* Investigate https://github.com/upbound/provider-vault
 
 ## Issues to raise on base repo
 
