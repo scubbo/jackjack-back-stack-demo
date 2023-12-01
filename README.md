@@ -38,6 +38,8 @@ Once everything's installed (which takes about 7-10 minutes), the following step
 
 ### Creating a new application from external definition
 
+(If you were linked here from the StackOverflow question or the Slack post, you can skip this part)
+
 * In Backstage, navigate to "[Create](https://backstage-7f000001.nip.io/create)", and choose "New Application Deployment"
 * Fill out the metadata:
   * Application Source: `https://github.com/danielhelfand/examples`
@@ -62,7 +64,29 @@ Once everything's installed (which takes about 7-10 minutes), the following step
 * Click into the sub-application (named whatever you entered as the name of your Application at the beginning of this section), and Sync - again, everything should (shortly) go green.
 * You _could_ set up an Ingress to provide access to the application, but for a demo it's simpler just to port-forward: `kubectl -n default port-forward service/frontend 8080:80` - then in your browser, navigate to `localhost:8080`
 
-(Next step TODO - demonstrate how to use Crossplane to manage outside-k8s resources, like Vaul Roles/Policies)
+### Creating an external resource with Crossplane
+
+Here I'm stuck - I expected, based on [docs](https://doc.crds.dev/github.com/upbound/provider-vault/vault.vault.upbound.io/Policy/v1alpha1@v0.3.0), that I should be able to create a Vault policy with:
+
+```
+$ kubectl apply -f - <<- EOF
+apiVersion: vault.vault.upbound.io/v1alpha1
+kind: Policy
+metadata:
+  name: vault-policy-created-by-crossplane
+spec:
+  forProvider:
+    name: dev-team
+    policy: |
+      path "secret/my_app" {
+        capabilities = ["update"]
+      }
+  providerConfigRef:
+    name: vault-provider-config
+EOF
+```
+
+However, after doing so, the CRD is created, but no such policy exists in Vault itself. I'm going to post on StackOverflow and the Crossplane Slack looking for assistance.
 
 # Thanks and acknowledgements
 
