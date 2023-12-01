@@ -88,6 +88,21 @@ EOF
 
 However, after doing so, the CRD is created, but no such policy exists in Vault itself. I'm going to post on StackOverflow and the Crossplane Slack looking for assistance.
 
+I have noticed some error-looking logs for the `vault-provider` pod:
+
+```
+$ kubectl logs provider-vault-b61923ede364-5bdb75985c-qdf2h
+...
+W1201 02:05:14.647640       1 reflector.go:424] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
+E1201 02:05:14.647754       1 reflector.go:140] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: Failed to watch *v1alpha1.GroupMemberEntityIds: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
+W1201 02:05:15.822598       1 reflector.go:424] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
+E1201 02:05:15.823265       1 reflector.go:140] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: Failed to watch *v1alpha1.GroupMemberEntityIds: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
+W1201 02:05:18.136015       1 reflector.go:424] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
+E1201 02:05:18.137220       1 reflector.go:140] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: Failed to watch *v1alpha1.GroupMemberEntityIds: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
+```
+
+which is surprising, as I've explicitly granted those permissions (currently, lines 324-351 of `install.sh`)
+
 # Thanks and acknowledgements
 
 This demo was heavily inspired by, and builds on, [this repo](https://github.com/crossplane-contrib/back-stack) - though I've adapted it heavily to suit my own team's use-cases (in particular, cluster maintainance is not a big concern for us, but definition of Applications' "SDLC Infrastructure" - e.g. the Vault policies which allow GitHub Actions to execute - is). I also made some tweaks to the `install` script to make it idempotent (since I had to re-run a bunch of times to get around issues, and starting up the cluster from scratch each time was a pain!), such as using `kubectl apply` rather than `kubectl create` to create `clusterrolebinding`s and `ProviderConfig`s.

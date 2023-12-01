@@ -266,7 +266,7 @@ kubectl -n vault exec -i vault-0 -- vault write auth/kubernetes/role/crossplane 
 # TODO - obviously this is less-than-secure! :P
 # Cannot use `...vault create token -field token` because that results in some (awkwardly invisible!) control characters
 # in the response
-VAULT_ROOT_TOKEN=$(kubectl exec -n vault -it vault-0 -- vault token create | grep '^token\s' | awk '{print $2}' | tr -d '^M')
+VAULT_ROOT_TOKEN=$(kubectl exec -n vault -it vault-0 -- vault token create | grep '^token\s' | awk '{print $2}' | sed 's/\r//')
 
 # Install Vault Provider
 # TODO - this is not technically idempotent if there is an issue while applying - the downloaded zip file, and
@@ -309,6 +309,46 @@ spec:
 EOF
 
 rm provider-vault.zip
+
+cat <<EOF | kubectl apply -f -
+apiVersion: pkg.crossplane.io/v1
+kind: Provider
+metadata:
+  name: provider-vault
+spec:
+  package: xpkg.upbound.io/upbound/provider-vault:v0.1.0
+EOF
+
+# The ClusterRole that is created by the standard installation is missing some permissions, resulting in error messages
+# logs from the Vault Provider
+kubectl apply -f - <<- EOF
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: extra-permissions-for-vault-provider-cluster-role
+rules:
+- apiGroups: ["identity.vault.upbound.io"]
+  resources: ["groupmemberentityidsidses", "groupmembergroupidsidses", "mfaoktas"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["mfa.vault.upbound.io"]
+  resources: ["oktas"]
+  verbs: ["get", "watch", "list"]
+EOF
+VAULT_PROVIDER_SA=$(kubectl -n crossplane-system get sa | grep 'provider-vault' | awk '{print $1}')
+kubectl apply -f - <<- EOF
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: extra-permissions-for-vault-provider
+subjects:
+- kind: ServiceAccount
+  name: ${VAULT_PROVIDER_SA}
+  namespace: crossplane-system
+roleRef:
+  kind: ClusterRole
+  name: extra-permissions-for-vault-provider-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+EOF
 
 # restart ess pod
 kubectl get -n crossplane-system pods -o name | grep ess-plugin-vault | xargs kubectl delete -n crossplane-system 
