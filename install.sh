@@ -263,8 +263,57 @@ kubectl -n vault exec -i vault-0 -- vault write auth/kubernetes/role/crossplane 
     policies=crossplane \
     ttl=24h
 
+# TODO - obviously this is less-than-secure! :P
+# Cannot use `...vault create token -field token` because that results in some (awkwardly invisible!) control characters
+# in the response
+VAULT_ROOT_TOKEN=$(kubectl exec -n vault -it vault-0 -- vault token create | grep '^token\s' | awk '{print $2}' | tr -d '^M')
+
+# Install Vault Provider
+# TODO - this is not technically idempotent if there is an issue while applying - the downloaded zip file, and
+# partially-extracted directory, will not be cleaned up.
+curl -sL -o provider-vault.zip "https://github.com/upbound/provider-vault/archive/refs/heads/main.zip"
+
+unzip -j provider-vault.zip "provider-vault-main/package/crds/*" -d "vault-crds"
+kubectl apply -f vault-crds
+rm -r vault-crds
+
+# Taken from https://github.com/upbound/provider-vault/blob/main/examples/providerconfig/secret.yaml.tmpl
+kubectl apply -f - <<-EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-creds-for-crossplane-provider
+  namespace: vault
+type: Opaque
+stringData:
+  credentials: |
+    {
+      "token_name": "vault-creds-test-token",
+      "token": "${VAULT_ROOT_TOKEN}"
+    }
+EOF
+
+kubectl apply -f - <<- EOF
+apiVersion: vault.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: vault-provider-config
+spec:
+  address: http://127.0.0.1:8200
+  credentials:
+    source: Secret
+    secretRef:
+      name: vault-creds-for-crossplane-provider
+      namespace: vault
+      key: credentials
+EOF
+
+rm provider-vault.zip
+
 # restart ess pod
 kubectl get -n crossplane-system pods -o name | grep ess-plugin-vault | xargs kubectl delete -n crossplane-system 
+
+
 
 # ready to go!
 echo ""
@@ -275,4 +324,6 @@ Backstage: https://backstage-7f000001.nip.io
 ArgoCD: https://argocd-7f000001.nip.io
   username: admin
   password ${ARGO_INITIAL_PASSWORD}
+Vault: https://vault-7f000001.nip.io
+  Token: ${VAULT_ROOT_TOKEN}
 "

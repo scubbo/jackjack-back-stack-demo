@@ -62,7 +62,7 @@ Once everything's installed (which takes about 7-10 minutes), the following step
 * Click into the sub-application (named whatever you entered as the name of your Application at the beginning of this section), and Sync - again, everything should (shortly) go green.
 * You _could_ set up an Ingress to provide access to the application, but for a demo it's simpler just to port-forward: `kubectl -n default port-forward service/frontend 8080:80` - then in your browser, navigate to `localhost:8080`
 
-(Next step TODO - demonstrate how to use Crossplane to manage outside-k8s resources)
+(Next step TODO - demonstrate how to use Crossplane to manage outside-k8s resources, like Vaul Roles/Policies)
 
 # Thanks and acknowledgements
 
