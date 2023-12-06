@@ -274,6 +274,7 @@ VAULT_ROOT_TOKEN=$(kubectl exec -n vault -it vault-0 -- vault token create | gre
 curl -sL -o provider-vault.zip "https://github.com/upbound/provider-vault/archive/refs/heads/main.zip"
 
 unzip -j provider-vault.zip "provider-vault-main/package/crds/*" -d "vault-crds"
+rm provider-vault.zip
 kubectl apply -f vault-crds
 rm -r vault-crds
 
@@ -299,7 +300,7 @@ kind: ProviderConfig
 metadata:
   name: vault-provider-config
 spec:
-  address: http://127.0.0.1:8200
+  address: http://vault.vault.svc.cluster.local:8200
   credentials:
     source: Secret
     secretRef:
@@ -307,8 +308,6 @@ spec:
       namespace: vault
       key: credentials
 EOF
-
-rm provider-vault.zip
 
 cat <<EOF | kubectl apply -f -
 apiVersion: pkg.crossplane.io/v1

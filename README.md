@@ -66,9 +66,14 @@ Once everything's installed (which takes about 7-10 minutes), the following step
 
 ### Creating an external resource with Crossplane
 
-Here I'm stuck - I expected, based on [docs](https://doc.crds.dev/github.com/upbound/provider-vault/vault.vault.upbound.io/Policy/v1alpha1@v0.3.0), that I should be able to create a Vault policy with:
+First, demonstrate creation of a Vault Policy directly:
 
 ```
+$ kubectl -n vault exec -t vault-0 -- vault policy list
+crossplane
+default
+root
+
 $ kubectl apply -f - <<- EOF
 apiVersion: vault.vault.upbound.io/v1alpha1
 kind: Policy
@@ -84,24 +89,17 @@ spec:
   providerConfigRef:
     name: vault-provider-config
 EOF
+
+$ kubectl -n vault exec -t vault-0 -- vault policy list
+crossplane
+default
+dev-team
+root
 ```
 
-However, after doing so, the CRD is created, but no such policy exists in Vault itself. I'm going to post on StackOverflow and the Crossplane Slack looking for assistance.
+### Creating Composite Resources with Crossplane
 
-I have noticed some error-looking logs for the `vault-provider` pod:
-
-```
-$ kubectl logs provider-vault-b61923ede364-5bdb75985c-qdf2h
-...
-W1201 02:05:14.647640       1 reflector.go:424] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
-E1201 02:05:14.647754       1 reflector.go:140] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: Failed to watch *v1alpha1.GroupMemberEntityIds: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
-W1201 02:05:15.822598       1 reflector.go:424] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
-E1201 02:05:15.823265       1 reflector.go:140] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: Failed to watch *v1alpha1.GroupMemberEntityIds: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
-W1201 02:05:18.136015       1 reflector.go:424] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
-E1201 02:05:18.137220       1 reflector.go:140] k8s.io/client-go@v0.26.3/tools/cache/reflector.go:169: Failed to watch *v1alpha1.GroupMemberEntityIds: failed to list *v1alpha1.GroupMemberEntityIds: groupmemberentityidsidses.identity.vault.upbound.io is forbidden: User "system:serviceaccount:crossplane-system:provider-vault-b61923ede364" cannot list resource "groupmemberentityidsidses" in API group "identity.vault.upbound.io" at the cluster scope
-```
-
-which is surprising, as I've explicitly granted those permissions (currently, lines 324-351 of `install.sh`)
+(Terminology note - a `Composition` is a template for the creation of `Composite Resources`, the latter of which are "_set[s] of provisioned managed resources_")
 
 # Thanks and acknowledgements
 
