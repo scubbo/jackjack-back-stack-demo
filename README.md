@@ -38,7 +38,7 @@ Once everything's installed (which takes about 7-10 minutes), the following step
 
 ### Creating a new application from external definition
 
-(If you were linked here from the StackOverflow question or the Slack post, you can skip this part)
+(If you have been linked to this page from a StackOverflow question or a GitHub issue, you can skip this section)
 
 * In Backstage, navigate to "[Create](https://backstage-7f000001.nip.io/create)", and choose "New Application Deployment"
 * Fill out the metadata:
@@ -97,9 +97,93 @@ dev-team
 root
 ```
 
+(Note that if you delete the Vault policy with the `vault` CLI, it will be recreated shortly afterwards as Kubernetes carries out reconciliation!)
+
 ### Creating Composite Resources with Crossplane
 
-(Terminology note - a `Composition` is a template for the creation of `Composite Resources`, the latter of which are "_set[s] of provisioned managed resources_")
+(Terminology note - a `Composition` is a template for the creation of `Composite Resources`, the latter of which are "_set[s] of provisioned managed resources_". A `CompositeResourceDefinition` is a definition of the schema used for requesting a `Composite Resource` - i.e. what parameters can be passed. The diagram [here](https://docs.crossplane.io/latest/concepts/composite-resources/#creating-composite-resources) is very helpful)
+
+Create a [CompositeResourceDefinition](https://docs.crossplane.io/latest/concepts/composite-resource-definitions/) and a [Composition](https://docs.crossplane.io/latest/concepts/compositions/) (see [here](https://github.com/crossplane-contrib/function-go-templating) for discussion of the templating language):
+
+```
+$ kubectl apply -f -<<- EOF
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xapplicationvaultpolicies.crossplane-demo.legalzoom.com
+spec:
+  group: crossplane-demo.legalzoom.com
+  names:
+    kind: XApplicationVaultPolicy
+    plural: xapplicationvaultpolicies
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                serviceName:
+                  type: string
+EOF
+
+$ kubectl apply -f - <<- EOF
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: vault-policy-example
+spec:
+  compositeTypeRef:
+    apiVersion: crossplane-demo.legalzoom.com/v1alpha1
+    kind: XApplicationVaultPolicy
+  mode: Pipeline
+  pipeline:
+    - step: create-policies
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            apiVersion: vault.vault.upbound.io/v1alpha1
+            kind: Policy
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: dev-team-policy
+            spec:
+              forProvider:
+                name: "dev-team-policy-for-{{- .desired.composite.resource.spec.serviceName -}}"
+                policy: "path \"secret/{{- .desired.composite.resource.spec.serviceName -}}\" { capabilities = [\"update\"] }"
+              providerConfigRef:
+                name: vault-provider-config
+    - step: automatically-detect-ready-composed-resources
+      functionRef:
+        name: function-auto-ready
+EOF
+```
+
+(Note that `spec.compositeTypeRef.apiVersion` and `spec.compositeTypeRef.kind` in the Composition must match the `spec.group`/`spec.versions[n].name` and `spec.names.kind` in the CompositeResourceDefinition. See documentation [here](https://docs.crossplane.io/latest/concepts/composite-resources/#creating-composite-resources): "_When a user calls the custom API, [...]Crossplane chooses the Composition to use based on the Composition’s compositeTypeRef_")
+
+Now create a Composite Resource ("XR") from that Composition:
+
+```
+$ kubectl apply -f - <<- EOF
+apiVersion: crossplane-demo.legalzoom.com/v1alpha1
+kind: XApplicationVaultPolicy
+metadata:
+  name: application-vault-policy-for-service-1
+spec:
+  serviceName: my-service-1
+EOF
+```
+
+...And, at this point, things aren't working quite as I expect. I _thought_ this would create Kubernetes resources named `application-vault-policy-for-service{1,2}` and Vault policies named `dev-team-policy-for-my-service-{1,2}`, but in fact the Vault policy (and the `EXTERNAL-NAME` of the Kubernetes resource) is actually named `dev-team-policy-for-<no value>` \[sic\]. I'm going to reach out for help.
 
 # Thanks and acknowledgements
 

@@ -193,7 +193,7 @@ kubectl apply -f - <<-EOF
     kind: Hub
     metadata:
       name: hub
-    spec: 
+    spec:
       parameters:
         clusterId: local
         repository: ${REPOSITORY}
@@ -243,6 +243,7 @@ waitfor argocd secret argocd-initial-admin-secret
 ARGO_INITIAL_PASSWORD=$(kubectl get secret -n argocd argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
 
 # configure vault
+# (This part is _not_ idempotent. I'd love to make it so; but for now, if you run into issues while creating, delete the vault pod before retrying)
 kubectl wait -n vault pod/vault-0 --for=condition=Ready --timeout=1m
 kubectl -n vault exec -i vault-0 -- vault auth enable kubernetes
 kubectl -n vault exec -i vault-0 -- sh -c 'vault write auth/kubernetes/config \
@@ -318,6 +319,26 @@ spec:
   package: xpkg.upbound.io/upbound/provider-vault:v0.1.0
 EOF
 
+# Not strictly necessary, but these [Composition Functions](https://docs.crossplane.io/latest/concepts/composition-functions/#install-a-composition-function)
+# allow parametrization of a Composition Resource based on input parameters
+kubectl apply -f - <<- EOF
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-go-templating
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.3.0
+EOF
+
+kubectl apply -f - <<- EOF
+apiVersion: pkg.crossplane.io/v1beta1
+kind: Function
+metadata:
+  name: function-auto-ready
+spec:
+  package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:v0.2.1
+EOF
+
 # The ClusterRole that is created by the standard installation is missing some permissions, resulting in error messages
 # logs from the Vault Provider
 kubectl apply -f - <<- EOF
@@ -350,7 +371,7 @@ roleRef:
 EOF
 
 # restart ess pod
-kubectl get -n crossplane-system pods -o name | grep ess-plugin-vault | xargs kubectl delete -n crossplane-system 
+kubectl get -n crossplane-system pods -o name | grep ess-plugin-vault | xargs kubectl delete -n crossplane-system
 
 
 
@@ -365,4 +386,9 @@ ArgoCD: https://argocd-7f000001.nip.io
   password ${ARGO_INITIAL_PASSWORD}
 Vault: https://vault-7f000001.nip.io
   Token: ${VAULT_ROOT_TOKEN}
+"
+
+echo ""
+echo "
+(You probably also want to \`export VAULT_ADDR=https://vault-7f000001.nip.io; export VAULT_SKIP_VERIFY=true\`)
 "
