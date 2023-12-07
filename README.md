@@ -158,8 +158,20 @@ spec:
                 gotemplating.fn.crossplane.io/composition-resource-name: dev-team-policy
             spec:
               forProvider:
-                name: "dev-team-policy-for-{{- .desired.composite.resource.spec.serviceName -}}"
-                policy: "path \"secret/{{- .desired.composite.resource.spec.serviceName -}}\" { capabilities = [\"update\"] }"
+                name: "dev-team-policy-for-{{ .observed.composite.resource.spec.serviceName }}"
+                policy: "path \"secret/{{- .observed.composite.resource.spec.serviceName -}}\" { capabilities = [\"update\", \"read\"] }"
+              providerConfigRef:
+                name: vault-provider-config
+            ---
+            apiVersion: vault.vault.upbound.io/v1alpha1
+            kind: Policy
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: security-team-policy
+            spec:
+              forProvider:
+                name: "security-team-policy-for-{{ .observed.composite.resource.spec.serviceName }}"
+                policy: "path \"secret/{{- .observed.composite.resource.spec.serviceName -}}\" { capabilities = [\"update\",\"list\",\"delete\"] }"
               providerConfigRef:
                 name: vault-provider-config
     - step: automatically-detect-ready-composed-resources
@@ -183,7 +195,17 @@ spec:
 EOF
 ```
 
-...And, at this point, things aren't working quite as I expect. I _thought_ this would create Kubernetes resources named `application-vault-policy-for-service{1,2}` and Vault policies named `dev-team-policy-for-my-service-{1,2}`, but in fact the Vault policy (and the `EXTERNAL-NAME` of the Kubernetes resource) is actually named `dev-team-policy-for-<no value>` \[sic\]. I'm going to reach out for help.
+And demonstrate that the approprate policies were created:
+
+```
+$ vault policy list
+...
+dev-team-policy-for-my-service-1
+security-team-policy-for-my-service-1
+...
+```
+
+Next, try updating the Composition to define the policies differently (e.g. consider changing the capabilities of one of the policies), and demonstrate that the policies change to match.
 
 # Thanks and acknowledgements
 
