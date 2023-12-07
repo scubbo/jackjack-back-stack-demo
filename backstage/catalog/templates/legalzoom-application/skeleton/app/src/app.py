@@ -3,7 +3,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def main():
-  return '<h1>Hello!</h1><p>You are hitting ${{values.application_name}}'
+  return '<h1>Hello!</h1><p>You are hitting ${{values.application_name}}<p>'
 
 @app.route('/uptime')
 def uptime():

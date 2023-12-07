@@ -37,10 +37,37 @@ spec:
           description: GitHub Owner for packages created as part of this workflow
           type: string
           default: scubbo
+    - title: Application Deployment Target Information
+      required:
+        - repo_url
+        - cluster_id
+      properties:
+        repo_url:
+          title: Repo URL
+          type: string
+          description: Which repo are you using to set up your cluster? (this is `scubbo/jackjack-back-stack-demo` if you have not forked)
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+        cluster_id:
+          title: Cluster ID
+          type: string
+          description: ID of the Cluster to target for deployment
+          ui:field: EntityPicker
+          ui:options:
+            catalogFilter:
+              - kind: Resource
+                spec.type: kubernetes-cluster
+
   steps:
     # TODO - it would be really cool if the template could be fetched _from_ a GitHub repo!
     # Should be possible with a custom action, but sadly I didn't see a built-in action (at
     # https://backstage-7f000001.nip.io/create/actions) for cloning a repo.
+    
+    #####
+    # Create Deployment Repo
+    #####
     - id: fetch-deployment-template
       name: Fetch Deployment Template
       action: fetch:template
@@ -67,6 +94,9 @@ spec:
         files:
           - templates/deployment
 
+    #####
+    # Create AppCode Repo
+    #####
     - id: fetch-appcode-template
       name: Fetch AppCode Template
       action: fetch:template
@@ -91,6 +121,39 @@ spec:
       input:
         files:
           - templates/app
+
+    #####
+    # Create pull-request to register the App on the k8s cluster.
+    # This assumes the existence of an App-of-apps application which scans the `demo/applications` path for app
+    # definitions - see README.md for more info
+    #
+    # Unlike the prior chunks-of-steps, which are checking out templates and using them to create _new_ repos, this
+    # chunk is fetching a template to use in a pull-request against the repo which defines Backstage's _own_
+    # configuration.
+    #####
+    - id: fetch-pull-request-template
+      name: Fetch Template for Pull Request to add Application to cluster
+      action: fetch:template
+      input:
+        url: ./skeleton/app-registration
+        targetPath: demo/applications
+        values:
+          cluster_id: ${{ parameters.cluster_id | parseEntityRef | pick('name') }}
+          application_name: ${{ parameters.name }}
+          application_source: ${{ parameters.name }}
+    - id: submit-pr-to-add-app-to-cluster
+      name: Submit PR to add app to cluster
+      action: publish:github:pull-request
+      input:
+        allowedHosts: ['github.com']
+        title: "Request for new application: ${{ parameters.name }}"
+        description: |
+          AppCode Source: ${{ parameters.name }}-app
+          DeploymentCode Source: ${{ parameters.name }}-deployment
+          Cluster ID: ${{ parameters.cluster_id }}
+        repoUrl: ${{ parameters.repo_url }}
+        branchName: register-new-app-${{ parameters.name }}
+          
 
   output:
     text:
