@@ -264,6 +264,14 @@ kubectl -n vault exec -i vault-0 -- vault write auth/kubernetes/role/crossplane 
     policies=crossplane \
     ttl=24h
 
+# Enable GitHub OIDC in Vault
+# https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-hashicorp-vault
+kubectl -n vault exec -i vault-0 -- vault auth enable jwt
+kubectl -n vault exec -i vault-0 -- vault write auth/jwt/config \
+        bound_issuer="https://token.actions.githubusercontent.com" \
+        oidc_discovery_url="https://token.actions.githubusercontent.com"
+# Creation of an application (by Backstage) will also create the Vault role which is accessible by actions for that repo.
+
 # TODO - obviously this is less-than-secure! :P
 # Cannot use `...vault create token -field token` because that results in some (awkwardly invisible!) control characters
 # in the response

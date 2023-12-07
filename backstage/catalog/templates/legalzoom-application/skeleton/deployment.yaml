@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ${{values.application_name}}
+    backstage.io/kubernetes-id: ${{values.application_name}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${{values.application_name}}
+  template:
+    metadata:
+      labels:
+        app: ${{values.application_name}}
+        backstage.io/kubernetes-id: ${{values.application_name}}
+    spec:
+      containers:
+        - name: main-app
+          image: ghcr.io/${{values.owner}}/${{app_code_repo_name}}
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+              name: http

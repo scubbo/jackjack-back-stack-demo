@@ -1,0 +1,72 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: legalzoom-application
+  title: New LegalZoom Application Deployment
+  description: Create an Application (and all supporting resources/components) for deployment at LegalZoom
+  tags:
+    - argocd
+    - xks
+spec:
+  owner: infrastructure
+  type: component
+  parameters:
+    - title: Application Information
+      required:
+        - name
+        - deployment_template_repo
+        - app_code_template_repo
+      properties:
+        name: 
+          title: Application Name 
+          type: string
+          description: The name of the application to deploy. No whitespace/special-characters, please (in real production, we'd do sanitization)
+          pattern: '^([a-zA-Z]*)(-[a-zA-Z0-9]+)*$'
+        deployment_template_repo:
+          title: Deployment Template Repo
+          description: Template from which to create Deployment Repo
+          type: string
+          default: scubbo/helm-chart-template-for-back-stack
+        app_code_template_repo:
+          title: AppCode Template Repo
+          description: Template from which to create AppCode Repo
+          type: string
+          default: scubbo/app-code-template-for-back-stack
+        owner:
+          title: GitHub Owner
+          description: GitHub Owner for packages created as part of this workflow
+          type: string
+          default: scubbo
+  steps:
+    # TODO - it would be really cool if the template could be fetched _from_ a GitHub repo!
+    # Should be possible with a custom action, but sadly I didn't see a built-in action (at
+    # https://backstage-7f000001.nip.io/create/actions) for cloning a repo.
+    - id: fetch-deployment-template
+      name: Fetch Deployment Template
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: templates/deployment
+        values:
+          application_name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+          app_code_repo_name: ${{ parameters.name }}-app
+    - id: initialize-deployment-repo
+      name: Initialize Deployment Repo
+      action: "publish:github"
+      input:
+        repoUrl: github.com?repo=${{ parameters.name }}-deployment&owner=${{ parameters.owner }}
+        description: Deployment Repo for ${{ parameters.name }}. In a production setup, this would be provided as input.
+        deleteBranchOnMerge: true
+        repoVisibility: public # Private requires extra OAuth scopes
+        sourcePath: templates/deployment
+    - id: cleanup-deployment-template
+      name: Cleanup Deployment Template
+      action: fs:delete
+      input:
+        files:
+          - templates/deployment
+  output:
+    text:
+      - title: Success!
+        content: Your repo was created at https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment
