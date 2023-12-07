@@ -45,7 +45,7 @@ spec:
       name: Fetch Deployment Template
       action: fetch:template
       input:
-        url: ./skeleton
+        url: ./skeleton/deployment
         targetPath: templates/deployment
         values:
           application_name: ${{ parameters.name }}
@@ -66,7 +66,33 @@ spec:
       input:
         files:
           - templates/deployment
+
+    - id: fetch-appcode-template
+      name: Fetch AppCode Template
+      action: fetch:template
+      input:
+        url: ./skeleton/app
+        targetPath: templates/app
+        values:
+          application_name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+    - id: initialize-appcode-repo
+      name: Initialize AppCode Repo
+      action: "publish:github"
+      input:
+        repoUrl: github.com?repo=${{ parameters.name }}-app&owner=${{ parameters.owner }}
+        description: AppCode Repo for ${{ parameters.name }}. In a production setup, this would be provided as input.
+        deleteBranchOnMerge: true
+        repoVisibility: public # Private requires extra OAuth scopes
+        sourcePath: templates/app
+    - id: cleanup-appcode-template
+      name: Cleanup AppCode Template
+      action: fs:delete
+      input:
+        files:
+          - templates/app
+
   output:
     text:
       - title: Success!
-        content: Your repo was created at https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment
+        content: Your repos were created at https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment and https://github.com/${{ parameters.owner }}/${{ parameters.name }}-app
