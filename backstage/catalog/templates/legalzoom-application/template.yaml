@@ -14,24 +14,12 @@ spec:
     - title: Application Information
       required:
         - name
-        - deployment_template_repo
-        - app_code_template_repo
       properties:
-        name: 
-          title: Application Name 
+        name:
+          title: Application Name
           type: string
           description: The name of the application to deploy. No whitespace/special-characters, please (in real production, we'd do sanitization)
           pattern: '^([a-zA-Z]*)(-[a-zA-Z0-9]+)*$'
-        deployment_template_repo:
-          title: Deployment Template Repo
-          description: Template from which to create Deployment Repo
-          type: string
-          default: scubbo/helm-chart-template-for-back-stack
-        app_code_template_repo:
-          title: AppCode Template Repo
-          description: Template from which to create AppCode Repo
-          type: string
-          default: scubbo/app-code-template-for-back-stack
         owner:
           title: GitHub Owner
           description: GitHub Owner for packages created as part of this workflow
@@ -140,7 +128,7 @@ spec:
         values:
           cluster_id: ${{ parameters.cluster_id | parseEntityRef | pick('name') }}
           application_name: ${{ parameters.name }}
-          application_source: ${{ parameters.name }}
+          application_source: https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment
     - id: submit-pr-to-add-app-to-cluster
       name: Submit PR to add app to cluster
       action: publish:github:pull-request
@@ -158,4 +146,7 @@ spec:
   output:
     text:
       - title: Success!
-        content: Your repos were created at https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment and https://github.com/${{ parameters.owner }}/${{ parameters.name }}-app
+        content: |
+          Your [Deployment Repo](https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment) and [AppCode Repo](https://github.com/${{ parameters.owner }}/${{ parameters.name }}-app) were created.
+
+          To complete registration, review and accept the [pull request](${{ steps.'submit-pr-to-add-app-to-cluster'].output.remoteUrl }})

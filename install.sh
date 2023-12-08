@@ -363,6 +363,16 @@ rules:
   verbs: ["get", "watch", "list"]
 EOF
 VAULT_PROVIDER_SA=$(kubectl -n crossplane-system get sa | grep 'provider-vault' | awk '{print $1}')
+while :
+do
+  if [[ -z "$VAULT_PROVIDER_SA" ]]; then
+    echo "Waiting for crossplane-system Service Account to be created..."
+    sleep 1
+    VAULT_PROVIDER_SA=$(kubectl -n crossplane-system get sa | grep 'provider-vault' | awk '{print $1}')
+  else
+    break
+  fi
+done
 kubectl apply -f - <<- EOF
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
