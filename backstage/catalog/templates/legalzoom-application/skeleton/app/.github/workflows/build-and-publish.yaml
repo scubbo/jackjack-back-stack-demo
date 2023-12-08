@@ -1,0 +1,44 @@
+name: Build And Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docker-build-and-push:
+    name: Build and Push
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Import Secrets
+        uses: hashicorp/vault-action@v2.4.1
+        with:
+            url: ${{ values.vault_url }}
+            path: github-oidc
+            role: ${{ values.owner }}-${{ values.application_name }}
+            method: jwt
+            secrets: |
+              static-kv/github-pat/${{ values.application_name }}| GITHUB_PAT
+
+      - name: Login to GHCR
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ values.owner }} # TODO - this should be parametrizable when productionized!
+          password: ${{ env.GITHUB_PAT }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build and push
+        run: |
+          docker build -t ghcr.io/${{ values.owner }}/${{ values.application_name }}:$GITHUB_SHA .
+          docker push ghcr.io/${{ values.owner }}/${{ values.application_name }}:$GITHUB_SHA
+          docker tag ghcr.io/${{ values.owner }}/${{ values.application_name }}:$GITHUB_SHA ${{matrix.apps.image}}:latest
+          docker push ghcr.io/${{ values.owner }}/${{ values.application_name }}:latest
