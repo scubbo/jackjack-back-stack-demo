@@ -4,6 +4,7 @@ metadata:
   labels:
     app: ${{values.application_name}}
     backstage.io/kubernetes-id: ${{values.application_name}}
+  name: ${{values.application_name}}
 spec:
   replicas: 1
   selector:

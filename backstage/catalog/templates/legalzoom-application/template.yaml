@@ -129,7 +129,7 @@ spec:
           cluster_id: ${{ parameters.cluster_id | parseEntityRef | pick('name') }}
           application_name: ${{ parameters.name }}
           application_source: https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment
-    - id: submit-pr-to-add-app-to-cluster
+    - id: pr
       name: Submit PR to add app to cluster
       action: publish:github:pull-request
       input:
@@ -148,10 +148,10 @@ spec:
       - title: AppCode Repo
         url: https://github.com/${{ parameters.owner }}/${{ parameters.name }}-app
       - title: Registration PR
-        url: ${{ steps.'submit-pr-to-add-app-to-cluster'].output.remoteUrl
+        url: ${{ steps.['pr'].output.remoteUrl }}
     text:
-      - title: Accept Pull Request
+      - title: More Info
         content: |
           Your New Application Request has been published to GitHub
 
-           To finish deploying the application, review and accept the [pull request](${{ steps['publish'].output.remoteUrl }}) 
+          To finish deploying the application, review and accept the [pull request](${{ steps['pr'].output.remoteUrl }} )
