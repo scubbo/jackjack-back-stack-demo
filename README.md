@@ -207,6 +207,102 @@ security-team-policy-for-my-service-1
 
 Next, try updating the Composition to define the policies differently (e.g. consider changing the capabilities of one of the policies), and demonstrate that the policies change to match.
 
+# Full End-to-end demo - create a LegalZoom(-ish) application from Backstage, deploy with ArgoCD, build in GHA using credentials created in Vault from Crossplane
+
+1. Create XRD and Composition to manage Vault bundles:
+
+```
+$ kubectl apply -f - <<- EOF
+apiVersion: apiextensions.crossplane.io/v1
+kind: CompositeResourceDefinition
+metadata:
+  name: xapplicationvaultbundles.crossplane-demo.legalzoom.com
+spec:
+  group: crossplane-demo.legalzoom.com
+  names:
+    kind: XApplicationVaultBundle
+    plural: xapplicationvaultbundles
+  versions:
+    - name: v1alpha1
+      served: true
+      referenceable: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                owner:
+                  type: string
+                serviceName:
+                  type: string
+---
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: vault-bundles-example
+spec:
+  compositeTypeRef:
+    apiVersion: crossplane-demo.legalzoom.com/v1alpha1
+    kind: XApplicationVaultBundle
+  mode: Pipeline
+  pipeline:
+    - step: create-entities
+      functionRef:
+        name: function-go-templating
+      input:
+        apiVersion: gotemplating.fn.crossplane.io/v1beta1
+        kind: GoTemplate
+        source: Inline
+        inline:
+          template: |
+            apiVersion: vault.vault.upbound.io/v1alpha1
+            kind: Policy
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}
+            spec:
+              forProvider:
+                name: "{{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}-gha"
+                policy: "path \"static-kv/github-pat/{{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}\" { capabilities = [\"read\"] }"
+              providerConfigRef:
+                name: vault-provider-config
+            ---
+            apiVersion: jwt.vault.upbound.io/v1alpha1
+            kind: AuthBackendRole
+            metadata:
+              annotations:
+                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}
+            spec:
+              forProvider:
+                # No need to set 'backend', here, as the backend installed in 'install.sh' uses the default path of 'auth/jwt'.
+                roleType: "jwt",
+                userClaim: "workflow",
+                boundClaims:
+                  repository: "{{ .observed.composite.resource.spec.owner }}/{{ .observed.composite.resource.spec.serviceName }}"
+                policies:
+                  - "{{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}-gha"
+                tokenMaxTtl: 3600
+              providerConfigRef:
+                name: vault-provider-config
+    - step: automatically-detect-ready-composed-resources
+      functionRef:
+        name: function-auto-ready
+EOF
+```
+
+2. Create a Vault secret containing the PAT (remember, we expect a `.env` containing `GITHUB_TOKEN`) - in a real productionalized setup, the secret would be provided by a [GitHub App installation](https://github.com/martinbaillie/vault-plugin-secrets-github)
+
+```
+# Not idempotent - repeating will give an error!
+$ vault secrets enable -path=static-kv kv
+# (Replace `<service-name>` with the value you are going to use - do not paste directly!)
+$ vault kv put -mount=static-kv github-pat <service-name>=$(grep 'GITHUB_TOKEN' .env | cut -d'=' -f2)
+```
+
+(Note - if you wanted to, you could do the above via Crossplane Vault Provider, too!)
+
 # Thanks and acknowledgements
 
 This demo was heavily inspired by, and builds on, [this repo](https://github.com/crossplane-contrib/back-stack) - though I've adapted it heavily to suit my own team's use-cases (in particular, cluster maintainance is not a big concern for us, but definition of Applications' "SDLC Infrastructure" - e.g. the Vault policies which allow GitHub Actions to execute - is). I also made some tweaks to the `install` script to make it idempotent (since I had to re-run a bunch of times to get around issues, and starting up the cluster from scratch each time was a pain!), such as using `kubectl apply` rather than `kubectl create` to create `clusterrolebinding`s and `ProviderConfig`s.

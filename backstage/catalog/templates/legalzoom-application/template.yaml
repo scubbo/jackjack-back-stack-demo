@@ -14,6 +14,8 @@ spec:
     - title: Application Information
       required:
         - name
+        - owner
+        - vault_url
       properties:
         name:
           title: Application Name
@@ -25,6 +27,11 @@ spec:
           description: GitHub Owner for packages created as part of this workflow
           type: string
           default: scubbo
+        vault_url:
+          title: Vault URL
+          description: URL GitHub Actions should use to communicate with Vault
+          type: string
+          default: vault.scubbo.org
     - title: Application Deployment Target Information
       required:
         - repo_url
@@ -52,35 +59,6 @@ spec:
     # TODO - it would be really cool if the template could be fetched _from_ a GitHub repo!
     # Should be possible with a custom action, but sadly I didn't see a built-in action (at
     # https://backstage-7f000001.nip.io/create/actions) for cloning a repo.
-    
-    #####
-    # Create Deployment Repo
-    #####
-    - id: fetch-deployment-template
-      name: Fetch Deployment Template
-      action: fetch:template
-      input:
-        url: ./skeleton/deployment
-        targetPath: templates/deployment
-        values:
-          application_name: ${{ parameters.name }}
-          owner: ${{ parameters.owner }}
-          app_code_repo_name: ${{ parameters.name }}-app
-    - id: initialize-deployment-repo
-      name: Initialize Deployment Repo
-      action: "publish:github"
-      input:
-        repoUrl: github.com?repo=${{ parameters.name }}-deployment&owner=${{ parameters.owner }}
-        description: Deployment Repo for ${{ parameters.name }}. In a production setup, this would be provided as input.
-        deleteBranchOnMerge: true
-        repoVisibility: public # Private requires extra OAuth scopes
-        sourcePath: templates/deployment
-    - id: cleanup-deployment-template
-      name: Cleanup Deployment Template
-      action: fs:delete
-      input:
-        files:
-          - templates/deployment
 
     #####
     # Create AppCode Repo
@@ -94,6 +72,7 @@ spec:
         values:
           application_name: ${{ parameters.name }}
           owner: ${{ parameters.owner }}
+          vault_url: $ {{ parameters.vault_url }}
     - id: initialize-appcode-repo
       name: Initialize AppCode Repo
       action: "publish:github"
@@ -109,6 +88,36 @@ spec:
       input:
         files:
           - templates/app
+
+    #####
+    # Create Deployment Repo
+    #####
+    - id: fetch-deployment-template
+      name: Fetch Deployment Template
+      action: fetch:template
+      input:
+        url: ./skeleton/deployment
+        targetPath: templates/deployment
+        values:
+          application_name: ${{ parameters.name }}
+          owner: ${{ parameters.owner }}
+          app_code_repo_name: ${{ parameters.name }}-app
+          app_code_initial_hash: ${{ steps['initialize-appcode-repo'].output.initialHash }}
+    - id: initialize-deployment-repo
+      name: Initialize Deployment Repo
+      action: "publish:github"
+      input:
+        repoUrl: github.com?repo=${{ parameters.name }}-deployment&owner=${{ parameters.owner }}
+        description: Deployment Repo for ${{ parameters.name }}. In a production setup, this would be provided as input.
+        deleteBranchOnMerge: true
+        repoVisibility: public # Private requires extra OAuth scopes
+        sourcePath: templates/deployment
+    - id: cleanup-deployment-template
+      name: Cleanup Deployment Template
+      action: fs:delete
+      input:
+        files:
+          - templates/deployment
 
     #####
     # Create pull-request to register the App on the k8s cluster.
@@ -148,7 +157,7 @@ spec:
       - title: AppCode Repo
         url: https://github.com/${{ parameters.owner }}/${{ parameters.name }}-app
       - title: Registration PR
-        url: ${{ steps.['pr'].output.remoteUrl }}
+        url: ${{ steps['pr'].output.remoteUrl }}
     text:
       - title: More Info
         content: |

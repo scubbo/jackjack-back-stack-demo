@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: main-app
-          image: ghcr.io/${{values.owner}}/${{values.app_code_repo_name}}
+          image: app_code_image
           ports:
             - containerPort: 5000
               protocol: TCP
