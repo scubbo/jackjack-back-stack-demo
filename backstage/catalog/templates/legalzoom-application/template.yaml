@@ -80,6 +80,7 @@ spec:
         repoUrl: github.com?repo=${{ parameters.name }}-app&owner=${{ parameters.owner }}
         description: AppCode Repo for ${{ parameters.name }}. In a production setup, this would be provided as input.
         deleteBranchOnMerge: true
+        defaultBranch: main
         repoVisibility: public # Private requires extra OAuth scopes
         sourcePath: templates/app
     - id: cleanup-appcode-template
@@ -109,6 +110,7 @@ spec:
       input:
         repoUrl: github.com?repo=${{ parameters.name }}-deployment&owner=${{ parameters.owner }}
         description: Deployment Repo for ${{ parameters.name }}. In a production setup, this would be provided as input.
+        defaultBranch: main
         deleteBranchOnMerge: true
         repoVisibility: public # Private requires extra OAuth scopes
         sourcePath: templates/deployment

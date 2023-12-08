@@ -5,6 +5,7 @@ metadata:
     app: ${{values.application_name}}
     backstage.io/kubernetes-id: ${{values.application_name}}
   name: ${{values.application_name}}
+  namespace: ${{values.application_name}}
 spec:
   ports:
   - port: 80

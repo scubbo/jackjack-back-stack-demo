@@ -9,7 +9,7 @@ GITHUB_TOKEN=<Personal Access Token: https://docs.github.com/en/authentication/k
 VAULT_TOKEN=root # default for 'dev' mode
 ```
 
-(TBD what scopes the token needs - not outlined in the [original source repo](https://github.com/crossplane-contrib/back-stack). For now, I've granted none)
+(TBD what scopes the token needs - not outlined in the [original source repo](https://github.com/crossplane-contrib/back-stack). For now, I've granted none. If you want to create a repo with a GitHub workflow - as you would under the [Full End-to-End demo](#full-end-to-end-demo---create-a-legalzoom-ish-application-from-backstage-deploy-with-argocd-build-in-gha-using-credentials-created-in-vault-from-crossplane) - you will need to grant the `workflow` scope)
 
 * `./install.sh`. Script _should_ be idempotent (i.e. you can re-run it after identifying and fixing an issue), but no promises :P use `./teardown.sh` to start from scratch.
 
@@ -209,7 +209,7 @@ Next, try updating the Composition to define the policies differently (e.g. cons
 
 # Full End-to-end demo - create a LegalZoom(-ish) application from Backstage, deploy with ArgoCD, build in GHA using credentials created in Vault from Crossplane
 
-1. Create XRD and Composition to manage Vault bundles:
+## Create XRD and Composition to manage Vault bundles
 
 ```
 $ kubectl apply -f - <<- EOF
@@ -292,7 +292,11 @@ spec:
 EOF
 ```
 
-2. Create a Vault secret containing the PAT (remember, we expect a `.env` containing `GITHUB_TOKEN`) - in a real productionalized setup, the secret would be provided by a [GitHub App installation](https://github.com/martinbaillie/vault-plugin-secrets-github)
+## Manually configure Vault
+
+### Secrets
+
+Create a Vault secret containing the PAT (remember, we expect a `.env` containing `GITHUB_TOKEN`) - in a real productionalized setup, the secret would be provided by a [GitHub App installation](https://github.com/martinbaillie/vault-plugin-secrets-github)
 
 ```
 # Not idempotent - repeating will give an error!
@@ -302,6 +306,37 @@ $ vault kv put -mount=static-kv github-pat <service-name>=$(grep 'GITHUB_TOKEN' 
 ```
 
 (Note - if you wanted to, you could do the above via Crossplane Vault Provider, too!)
+
+### Accessibility
+
+Set up a DNS name and forwarding so that there is a domain name, publicly-accessible from the Internet, which will point to your local Vault instance. This is so that GitHub Actions can access the Vault Entities that you create.
+
+There is no one-size-fits-all solution to this, but here's what worked for me (run each of these commands in standalone terminal windows, or add ` &` at the end to run them in background mode):
+
+* Port-forward the Vault Service so that it's available on a port on your local machine: `$ kubectl -n vault port-forward svc/vault 8200:8200`
+* Use [`devtunnel`](https://harshmatharu.com/blog/share-local-services-quickly-with-dev-tunnels) to make a publicly-available tunnel to your machine's port 8200:
+
+```
+$ devtunnel host -p 8200 --protocol http --allow-anonymous
+Hosting port: 80
+Connect via browser: https://vdnfzt79-80.usw3.devtunnels.ms
+Inspect network activity: https://vdnfzt79-80-inspect.usw3.devtunnels.ms
+
+Ready to accept connections for tunnel: swift-dog-4ppm20h
+```
+
+(Your output will look different from mine!)
+
+* Check that your setup works - go to the "Connect via browser" link and confirm that you see the Vault UI. Make a note of the address - you'll need it in the next step.
+
+Note that this is, of course, not the most secure solution - tear this down once you're done, especially if you're running this on your home network! (And disconnect yourself from work VPN while doing this)
+
+(I would have loved to get this working via Ingresses, but spent a couple hours tinkering with it to no avail. If you get it working, let me know!)
+
+## Create the application
+* Go to [Backstage Create](https://backstage-7f000001.nip.io/create)
+* Select "New LegalZoom Application"
+* Enter an arbitrary name for "Application Name", and enter the `devtunnel` URL (including scheme `https://`) in "Vault URL"
 
 # Thanks and acknowledgements
 
