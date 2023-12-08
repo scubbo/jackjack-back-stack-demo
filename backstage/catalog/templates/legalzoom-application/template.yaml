@@ -141,12 +141,17 @@ spec:
           Cluster ID: ${{ parameters.cluster_id }}
         repoUrl: ${{ parameters.repo_url }}
         branchName: register-new-app-${{ parameters.name }}
-          
-
   output:
+    links:
+      - title: Deployment Repo
+        url: https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment
+      - title: AppCode Repo
+        url: https://github.com/${{ parameters.owner }}/${{ parameters.name }}-app
+      - title: Registration PR
+        url: ${{ steps.'submit-pr-to-add-app-to-cluster'].output.remoteUrl
     text:
-      - title: Success!
+      - title: Accept Pull Request
         content: |
-          Your [Deployment Repo](https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment) and [AppCode Repo](https://github.com/${{ parameters.owner }}/${{ parameters.name }}-app) were created.
+          Your New Application Request has been published to GitHub
 
-          To complete registration, review and accept the [pull request](${{ steps.'submit-pr-to-add-app-to-cluster'].output.remoteUrl }})
+           To finish deploying the application, review and accept the [pull request](${{ steps['publish'].output.remoteUrl }}) 

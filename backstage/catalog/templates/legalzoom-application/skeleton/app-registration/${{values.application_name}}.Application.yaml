@@ -7,7 +7,7 @@ spec:
   project: default
   source:
     repoURL: ${{ values.application_source }}
-    path: /
+    path: .
     targetRevision: HEAD
   destination: 
     name: ${{ values.cluster_id }}
