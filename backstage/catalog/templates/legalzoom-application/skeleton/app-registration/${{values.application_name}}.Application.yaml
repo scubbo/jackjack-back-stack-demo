@@ -20,4 +20,5 @@ kind: XApplicationVaultBundle
 metadata:
   name: application-vault-bundle-for-${{ values.application_name }}
 spec:
+  owner: {{ values.owner }}
   serviceName: ${{ values.application_name }}

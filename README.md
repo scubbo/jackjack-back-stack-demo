@@ -246,51 +246,78 @@ spec:
   compositeTypeRef:
     apiVersion: crossplane-demo.legalzoom.com/v1alpha1
     kind: XApplicationVaultBundle
-  mode: Pipeline
-  pipeline:
-    - step: create-entities
-      functionRef:
-        name: function-go-templating
-      input:
-        apiVersion: gotemplating.fn.crossplane.io/v1beta1
-        kind: GoTemplate
-        source: Inline
-        inline:
-          template: |
-            apiVersion: vault.vault.upbound.io/v1alpha1
-            kind: Policy
-            metadata:
-              annotations:
-                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}
-            spec:
-              forProvider:
-                name: "{{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}-gha"
-                policy: "path \"static-kv/github-pat/{{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}\" { capabilities = [\"read\"] }"
-              providerConfigRef:
-                name: vault-provider-config
-            ---
-            apiVersion: jwt.vault.upbound.io/v1alpha1
-            kind: AuthBackendRole
-            metadata:
-              annotations:
-                gotemplating.fn.crossplane.io/composition-resource-name: {{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}
-            spec:
-              forProvider:
-                # No need to set 'backend', here, as the backend installed in 'install.sh' uses the default path of 'auth/jwt'.
-                roleType: "jwt",
-                userClaim: "workflow",
-                boundClaims:
-                  repository: "{{ .observed.composite.resource.spec.owner }}/{{ .observed.composite.resource.spec.serviceName }}"
-                policies:
-                  - "{{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}-gha"
-                tokenMaxTtl: 3600
-              providerConfigRef:
-                name: vault-provider-config
-    - step: automatically-detect-ready-composed-resources
-      functionRef:
-        name: function-auto-ready
+  resources:
+    - name: Policy
+      base:
+        apiVersion: vault.vault.upbound.io/v1alpha1
+        kind: Policy
+        spec:
+          providerConfigRef:
+            name: vault-provider-config
+      patches:
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.owner
+              - fromFieldPath: spec.serviceName
+            strategy: string
+            string:
+              fmt: "%s-%s-gha-policy"
+          toFieldPath: "spec.forProvider.name"
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.owner
+              - fromFieldPath: spec.serviceName
+            strategy: string
+            string:
+              fmt: "path \"static-kv/data/github-pat/%s-%s\" { capabilities = [\"read\",\"list\"] }"
+          toFieldPath: "spec.forProvider.policy"
+    - name: Role
+      base:
+        apiVersion: jwt.vault.upbound.io/v1alpha1
+        kind: AuthBackendRole
+        spec:
+          forProvider:
+            roleType: "jwt"
+            userClaim: "workflow"
+            tokenPolicies:
+              - "{{ .observed.composite.resource.spec.owner }}-{{ .observed.composite.resource.spec.serviceName }}-gha"
+            tokenMaxTtl: 3600
+          providerConfigRef:
+            name: vault-provider-config
+      patches:
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.owner
+              - fromFieldPath: spec.serviceName
+            strategy: string
+            string:
+              fmt: "%s-%s"
+          toFieldPath: "spec.forProvider.roleName"
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.owner
+              - fromFieldPath: spec.serviceName
+            strategy: string
+            string:
+              fmt: "%s/%s-app"
+          toFieldPath: "spec.forProvider.boundClaims.repository"
+        - type: CombineFromComposite
+          combine:
+            variables:
+              - fromFieldPath: spec.owner
+              - fromFieldPath: spec.serviceName
+            strategy: string
+            string:
+              fmt: "%s-%s-gha-policy"
+          toFieldPath: "spec.forProvider.tokenPolicies[0]"
 EOF
 ```
+
+
 
 ## Manually configure Vault
 
@@ -300,9 +327,9 @@ Create a Vault secret containing the PAT (remember, we expect a `.env` containin
 
 ```
 # Not idempotent - repeating will give an error!
-$ vault secrets enable -path=static-kv kv
-# (Replace `<service-name>` with the value you are going to use - do not paste directly!)
-$ vault kv put -mount=static-kv github-pat <service-name>=$(grep 'GITHUB_TOKEN' .env | cut -d'=' -f2)
+$ vault secrets enable -version=2 -path=static-kv kv
+# (Replace `<owner>` and `<service-name>` with the value you are going to use - do not paste directly!)
+$ vault kv put -mount=static-kv github-pat/<owner>-<service-name> token=$(grep 'GITHUB_TOKEN' .env | cut -d'=' -f2)
 ```
 
 (Note - if you wanted to, you could do the above via Crossplane Vault Provider, too!)
