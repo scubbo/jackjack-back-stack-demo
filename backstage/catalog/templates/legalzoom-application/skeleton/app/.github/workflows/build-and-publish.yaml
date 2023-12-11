@@ -59,7 +59,7 @@ jobs:
     steps:
       - name: setup kustomize
         run: |
-          curl -s "https://artifactory.legalzoom.com/artifactory/EKSBinaries/install_kustomize.sh"  | bash
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
 
       - name: Check out deployment repo
         uses: actions/checkout@v3
