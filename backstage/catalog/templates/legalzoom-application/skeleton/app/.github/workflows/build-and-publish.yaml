@@ -82,7 +82,7 @@ jobs:
           cd deployment && ../kustomize edit set image "app_code_image=*:$GITHUB_SHA"
           git config --global user.email "automation@legalzoom.com"
           git config --global user.name "GH Actions"
-          git remote set-url origin "https://${{ values.owner }}:${GITHUB_PAT}@github.com/${{ values.owner }}/${{ values.application-name }}-deployment.git
+          git remote set-url origin "https://${{ values.owner }}:${GITHUB_PAT}@github.com/${{ values.owner }}/${{ values.application_name }}-deployment.git
           git add . && git commit -m "Set image to $GITHUB_SHA" && git push origin
           cd ..
           rm -rf deployment
