@@ -61,6 +61,16 @@ jobs:
         run: |
           curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
 
+      - name: Import Secrets
+        uses: hashicorp/vault-action@v2.4.1
+        with:
+          url: ${{ values.vault_url }}
+          path: jwt
+          role: ${{ values.owner }}-${{ values.application_name }}
+          method: jwt
+          secrets: |
+            static-kv/data/github-pat/${{values.owner}}-${{ values.application_name }} token | GITHUB_PAT;
+
       - name: Check out deployment repo
         uses: actions/checkout@v3
         with:
@@ -72,6 +82,7 @@ jobs:
           cd deployment && ../kustomize edit set image "app_code_image=*:$GITHUB_SHA"
           git config --global user.email "automation@legalzoom.com"
           git config --global user.name "GH Actions"
+          git remote set-url origin "https://${{ values.owner }}:${GITHUB_PAT}@github.com/${{ values.owner }}/${{ values.application-name }}-deployment.git
           git add . && git commit -m "Set image to $GITHUB_SHA" && git push origin
           cd ..
           rm -rf deployment

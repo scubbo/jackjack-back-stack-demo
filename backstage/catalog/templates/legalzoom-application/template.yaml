@@ -114,6 +114,7 @@ spec:
         deleteBranchOnMerge: true
         repoVisibility: public # Private requires extra OAuth scopes
         sourcePath: templates/deployment
+        protectDefaultBranch: false # In production we'd want this to be true, but this speeds up the demo
     - id: cleanup-deployment-template
       name: Cleanup Deployment Template
       action: fs:delete
