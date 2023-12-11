@@ -259,7 +259,7 @@ spec:
               - fromFieldPath: spec.serviceName
             strategy: string
             string:
-              fmt: "path \"static-kv/data/github-pat/%s-%s\" { capabilities = [\"read\",\"list\"] }"
+              fmt: "path \"static-kv/data/github-pat/%s-%s\" { capabilities = [\"list\"] }"
           toFieldPath: "spec.forProvider.policy"
     - name: Role
       base:
@@ -305,7 +305,7 @@ spec:
 EOF
 ```
 
-
+(Note - the above _intentionally_ contains a typo, so that we can demonstrate the Composite-update-cascade functionality after creation. If you want to create it correctly from the start - note that the `capabilities` for `static-kv/data/github-pat/%s-%s` only provide `list`, not `read`)
 
 ## Manually configure Vault
 
@@ -317,7 +317,7 @@ Create a Vault secret containing the PAT (remember, we expect a `.env` containin
 # Not idempotent - repeating will give an error!
 $ vault secrets enable -version=2 -path=static-kv kv
 # (Replace `<owner>` and `<service-name>` with the value you are going to use - do not paste directly!)
-$ vault kv put -mount=static-kv github-pat/<owner>-<service-name> token=$(grep 'GITHUB_TOKEN' .env | cut -d'=' -f2)
+$ OWNER=<owner> SERVICE_NAME=<service-name> vault kv put -mount=static-kv "github-pat/$OWNER-$SERVICE_NAME" token=$(grep 'GITHUB_TOKEN' .env | cut -d'=' -f2)
 ```
 
 (Note - if you wanted to, you could do the above via Crossplane Vault Provider, too!)
@@ -352,6 +352,13 @@ Note that this is, of course, not the most secure solution - tear this down once
 * Go to [Backstage Create](https://backstage-7f000001.nip.io/create)
 * Select "New LegalZoom Application"
 * Enter an arbitrary name for "Application Name", and enter the `devtunnel` URL (including scheme `https://`) in "Vault URL"
+
+## Post-creation demo
+
+* Go to the AppCode repo, demonstrate that the initial upload to `ghcr.io` has failed because the Policy has not been created yet
+* Go to the PR, approve it, sync the `applications` ArgoCD App, retry the AppCode Action
+* Now it will fail because we (intentionally!) created the Composition with the wrong capabilities, to show that an update to a Composition will cascade out to the associated Custom Resources. Use `kubectl edit Composition/vault-bundles-example`, find the appropriate line (44 at the time of writing), and update it - then demonstrate that a. the Vault policy has been updated, and b. the GitHub action (when rerun) succeeds.
+
 
 # Thanks and acknowledgements
 

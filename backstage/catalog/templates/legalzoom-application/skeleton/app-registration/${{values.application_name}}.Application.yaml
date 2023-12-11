@@ -13,8 +13,6 @@ spec:
     name: ${{ values.cluster_id }}
     namespace: default
 ---
-# TODO - should this instead be part of the Application definition itself?
-# Probably not - the top-level access controls should remain under EngServices' control
 apiVersion: crossplane-demo.legalzoom.com/v1alpha1
 kind: XApplicationVaultBundle
 metadata:
