@@ -206,6 +206,7 @@ kubectl apply -f - <<-EOF
 EOF
 
 # Install an "app-of-apps" - https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/
+waitfor default ns argocd
 kubectl apply -f - <<- EOF
 apiVersion: argoproj.io/v1alpha1
 kind: Application
