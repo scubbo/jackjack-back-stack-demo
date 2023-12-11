@@ -1,0 +1,1 @@
+This directory contains the definitions of the applications that are hosted _on_ the cluster, in an [app-of-apps](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/) fasion.

@@ -72,7 +72,7 @@ spec:
         values:
           application_name: ${{ parameters.name }}
           owner: ${{ parameters.owner }}
-          vault_url: $ {{ parameters.vault_url }}
+          vault_url: ${{ parameters.vault_url }}
     - id: initialize-appcode-repo
       name: Initialize AppCode Repo
       action: "publish:github"

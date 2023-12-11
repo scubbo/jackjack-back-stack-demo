@@ -205,6 +205,24 @@ kubectl apply -f - <<-EOF
           host: vault-7f000001.nip.io
 EOF
 
+# Install an "app-of-apps" - https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/
+kubectl apply -f - <<- EOF
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: applications
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: ${REPOSITORY}
+    path: demo/applications
+    targetRevision: HEAD
+  destination:
+    name: hostcluster
+    namespace: default
+EOF
+
 
 ########################
 # Phase 4 - Secret installation

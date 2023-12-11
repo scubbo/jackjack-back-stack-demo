@@ -9,7 +9,7 @@ GITHUB_TOKEN=<Personal Access Token: https://docs.github.com/en/authentication/k
 VAULT_TOKEN=root # default for 'dev' mode
 ```
 
-(TBD what scopes the token needs - not outlined in the [original source repo](https://github.com/crossplane-contrib/back-stack). For now, I've granted none. If you want to create a repo with a GitHub workflow - as you would under the [Full End-to-End demo](#full-end-to-end-demo---create-a-legalzoom-ish-application-from-backstage-deploy-with-argocd-build-in-gha-using-credentials-created-in-vault-from-crossplane) - you will need to grant the `workflow` scope)
+(TBD what scopes the token needs - not outlined in the [original source repo](https://github.com/crossplane-contrib/back-stack). For now, I've granted none. If you want to create a repo with a GitHub workflow - as you would under the [Full End-to-End demo](#full-end-to-end-demo---create-a-legalzoom-ish-application-from-backstage-deploy-with-argocd-build-in-gha-using-credentials-created-in-vault-from-crossplane) - you will need to grant the `workflow` scope. If you want to push images to ghcr.io - as, again, is done in the End-to-end demo - you'll also need `write:packages`)
 
 * `./install.sh`. Script _should_ be idempotent (i.e. you can re-run it after identifying and fixing an issue), but no promises :P use `./teardown.sh` to start from scratch.
 
@@ -30,7 +30,6 @@ Once everything's installed (which takes about 7-10 minutes), the following step
 
 * Log in to ArgoCD with the provided URL and credentials
   * The `clusters` application comes pre-bundled with the demo BACK stack I was working from. The original demo showed how easy it was to create AKS/EKS clusters via Crossplane, but we're not interested in that functionality right now.
-  * You probably want to go to "Settings -> Clusters" and change the name of `in-cluster` to `hostcluster` - see [this issue](https://github.com/back-stack/showcase/issues/1).
 * Navigate to Backstage, wait until the Catalog shows objects populated (should be 4 of them, one for each element of the BACK stack)
   * (This can take about 10 minutes - better to do this in-advance if you're planning a demo)
 
@@ -51,15 +50,6 @@ Once everything's installed (which takes about 7-10 minutes), the following step
     * Note that the labelling is misleading - the label under "Host" reads "_The host where the repository will be created_", but a repository is only being updated (actually, not even that - a PR created), not created
   * Click "Review", then "Create"
 * Once Creation is complete, click through to the Pull Request, and Merge it
-* Manually create an [App-of-apps](https://argo-cd.readthedocs.io/en/stable/operator-manual/cluster-bootstrapping/) so that the added application will show up. In Argo UI, click "New App". Fill out:
-  * Application Name: Arbitrary (I chose `applications`)
-  * Project Name: default
-  * Repository URL: This should autofill, but - the full URL to your forked repository (e.g. `https://github.com/scubbo/jackjack-back-stack-demo`, for me)
-  * Path: `demo/applications`
-  * Cluster URL: `https://kubernetes.default.svc` (again, this should autofill)
-  * Namespace: `default`
-  * Click "Create"
-  * (The reason that this has to be created manually, rather than by Argo seems to forbid creating an empty App-of-apps)
 * The Argo Applications screen should now show an `applications` app. Click into it, and click "Sync" at the top of the page - everything should go Green
 * Click into the sub-application (named whatever you entered as the name of your Application at the beginning of this section), and Sync - again, everything should (shortly) go green.
 * You _could_ set up an Ingress to provide access to the application, but for a demo it's simpler just to port-forward: `kubectl -n default port-forward service/frontend 8080:80` - then in your browser, navigate to `localhost:8080`
@@ -129,9 +119,7 @@ spec:
               properties:
                 serviceName:
                   type: string
-EOF
-
-$ kubectl apply -f - <<- EOF
+---
 apiVersion: apiextensions.crossplane.io/v1
 kind: Composition
 metadata:
