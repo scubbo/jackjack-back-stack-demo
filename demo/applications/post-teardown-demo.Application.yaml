@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: post-teardown-demo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/scubbo/post-teardown-demo-deployment
+    path: .
+    targetRevision: HEAD
+  destination: 
+    name: hostcluster
+    namespace: default
+---
+apiVersion: crossplane-demo.legalzoom.com/v1alpha1
+kind: XApplicationVaultBundle
+metadata:
+  name: application-vault-bundle-for-post-teardown-demo
+spec:
+  owner: 
+  serviceName: post-teardown-demo
