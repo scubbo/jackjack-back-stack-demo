@@ -9,7 +9,7 @@ spec:
     repoURL: https://github.com/scubbo/post-teardown-demo-deployment
     path: .
     targetRevision: HEAD
-  destination: 
+  destination:
     name: hostcluster
     namespace: default
 ---
@@ -20,5 +20,5 @@ kind: XApplicationVaultBundle
 metadata:
   name: application-vault-bundle-for-post-teardown-demo
 spec:
-  owner: {{ values.owner }}
+  owner: scubbo
   serviceName: post-teardown-demo
