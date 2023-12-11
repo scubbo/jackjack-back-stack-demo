@@ -140,6 +140,7 @@ spec:
           cluster_id: ${{ parameters.cluster_id | parseEntityRef | pick('name') }}
           application_name: ${{ parameters.name }}
           application_source: https://github.com/${{ parameters.owner }}/${{ parameters.name }}-deployment
+          owner: ${{ parameters.owner }}
     - id: pr
       name: Submit PR to add app to cluster
       action: publish:github:pull-request

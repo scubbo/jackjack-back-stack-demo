@@ -29,7 +29,7 @@ jobs:
       # IDK why but the `docker/login-action@v3` doesn't work - have to use this alternative approach to login instead
       - name: Login to GHCR
         run:
-          echo "$GITHUB_PAT" | docker login dhcr.io -u ${{ values.owner }} --password-stdin
+          echo "$GITHUB_PAT" | docker login ghcr.io -u ${{ values.owner }} --password-stdin
           # TODO - user should be separately parametrizable when productionized! The GitHub login user will not necessarily be the same as the "owner" (typically, organization) of a repo
 
       - name: Checkout

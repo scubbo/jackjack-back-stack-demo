@@ -317,7 +317,7 @@ Create a Vault secret containing the PAT (remember, we expect a `.env` containin
 # Not idempotent - repeating will give an error!
 $ vault secrets enable -version=2 -path=static-kv kv
 # (Replace `<owner>` and `<service-name>` with the value you are going to use - do not paste directly!)
-$ OWNER=<owner> SERVICE_NAME=<service-name> vault kv put -mount=static-kv "github-pat/$OWNER-$SERVICE_NAME" token=$(grep 'GITHUB_TOKEN' .env | cut -d'=' -f2)
+$ vault kv put -mount=static-kv github-pat/<owner>-<service-name> token=$(grep 'GITHUB_TOKEN' .env | cut -d'=' -f2)
 ```
 
 (Note - if you wanted to, you could do the above via Crossplane Vault Provider, too!)
