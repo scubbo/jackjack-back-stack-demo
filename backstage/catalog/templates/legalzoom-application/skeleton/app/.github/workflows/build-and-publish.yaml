@@ -37,10 +37,10 @@ jobs:
 
       - name: Build and push
         run: |
-          docker build -t ghcr.io/${{ values.owner }}/${{ values.application_name }}:$GITHUB_SHA .
-          docker push ghcr.io/${{ values.owner }}/${{ values.application_name }}:$GITHUB_SHA
-          docker tag ghcr.io/${{ values.owner }}/${{ values.application_name }}:$GITHUB_SHA ghcr.io/${{ values.owner }}/${{ values.application_name }}:latest
-          docker push ghcr.io/${{ values.owner }}/${{ values.application_name }}:latest
+          docker build -t ghcr.io/${{ values.owner }}/${{ values.application_name }}-app:$GITHUB_SHA .
+          docker push ghcr.io/${{ values.owner }}/${{ values.application_name }}-app:$GITHUB_SHA
+          docker tag ghcr.io/${{ values.owner }}/${{ values.application_name }}-app:$GITHUB_SHA ghcr.io/${{ values.owner }}/${{ values.application_name }}-app:latest
+          docker push ghcr.io/${{ values.owner }}/${{ values.application_name }}-app:latest
 
   # TODO - this doesn't actually call sync on the Argo App, because I haven't figured out how to get ArgoCD Auth Tokens
   # from Vault itself. That would be a great way to demonstrate the ability for Compositions to cascade their changes,

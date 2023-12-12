@@ -354,6 +354,14 @@ Note that this is, of course, not the most secure solution - tear this down once
 * Select "New LegalZoom Application"
 * Enter an arbitrary name for "Application Name", and enter the `devtunnel` URL (including scheme `https://`) in "Vault URL"
 
+## Create DockerConfigJson
+
+I'm sure it's _possible_ to do this via Crossplane etc., but I don't fancy figuring out how to do `base64` encoding within a template (and in-production this would be taken care of by cluster authentication anyway), so I'm just doing it manually for now:
+
+```
+$ kubectl get secret dockerconfigjson-github-com --namespace=default -oyaml | grep -v '^\s*namespace:\s' | kubectl apply --namespace=<your-namespace> -f -
+```
+
 ## Post-creation demo
 
 * Go to the AppCode repo, demonstrate that the initial upload to `ghcr.io` has failed because the Policy has not been created yet
