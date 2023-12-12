@@ -76,7 +76,7 @@ jobs:
         with:
           path: deployment
           repository: ${{ values.owner }}/${{ values.application_name }}-deployment
-          token: {% raw %}${{GITHUB_PAT}}{% endraw %}
+          token: {% raw %}${{ env.GITHUB_PAT}}{% endraw %}
 
       - name: Update deployment repo image tag
         run: |
