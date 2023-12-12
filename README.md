@@ -6,6 +6,7 @@
 ```
 REPOSITORY=https://github.com/<path_to_forked_repository>
 GITHUB_TOKEN=<Personal Access Token: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic>
+GITHUB_USERNAME=<username> # only used for the full end-to-end demo - you can skip if you don't want to pull images from ghcr.io
 VAULT_TOKEN=root # default for 'dev' mode
 ```
 

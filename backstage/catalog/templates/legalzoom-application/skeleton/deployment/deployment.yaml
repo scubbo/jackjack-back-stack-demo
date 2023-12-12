@@ -24,3 +24,7 @@ spec:
             - containerPort: 5000
               protocol: TCP
               name: http
+      # https://dev.to/asizikov/using-github-container-registry-with-kubernetes-38fb
+      # Not necessary on LZ Prod Clusters, just for this demo!
+      imagePullSecrets:
+        - name: dockerconfigjson-github-com

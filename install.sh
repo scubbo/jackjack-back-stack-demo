@@ -257,6 +257,18 @@ kubectl apply -f - <<-EOF
       VAULT_TOKEN: ${VAULT_TOKEN}
 EOF
 
+# https://dev.to/asizikov/using-github-container-registry-with-kubernetes-38fb
+DOCKER_CONFIG_AUTH=$(echo -n "${GITHUB_USERNAME}:${GITHUB_TOKEN}" | base64 | perl -pe 's/(.*)/{"auths":{"ghcr.io":{"auth":"$1"}}}/' | base64)
+kubectl apply -f - <<- EOF
+  apiVersion: v1
+  kind: Secret
+  type: kubernetes.io/dockerconfigjson
+  metadata:
+    name: dockerconfigjson-github-com
+  data:
+    .dockerconfigjson: ${DOCKER_CONFIG_AUTH}
+EOF
+
 # At this point in the original demo, AWS and Azure secrets were created
 
 waitfor argocd secret argocd-initial-admin-secret
