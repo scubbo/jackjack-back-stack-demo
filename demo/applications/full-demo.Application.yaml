@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: full-demo
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: full-demo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/scubbo/full-demo-deployment
+    path: .
+    targetRevision: HEAD
+  destination:
+    name: hostcluster
+    namespace: default
+---
+apiVersion: crossplane-demo.legalzoom.com/v1alpha1
+kind: XApplicationVaultBundle
+metadata:
+  name: application-vault-bundle-for-full-demo
+spec:
+  owner: scubbo
+  serviceName: full-demo
